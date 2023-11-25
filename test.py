@@ -2,7 +2,7 @@ import random
 import numpy as np
 from scipy.optimize import minimize
 
-from methods import nelder_mead, objective_function
+from methods import *
 
 a_array = [4., 4.4934, 5.]
 
@@ -28,5 +28,10 @@ for i in range(10):
     x_min = nelder_mead(objective_function, x0=randSet[i], s0=0.5, alpha=1., beta=0.5, gamma=2., delta=0.5, epsilon=0.5,
                         nMax=1000, bounds=bounds)
     print(x_min, ', ', objective_function(x_min)[0])
+    x_min_penalty = penalty_function(f=objective_function, x0=randSet[i], c0=1., alpha=1., epsilon=0.5, Nmax=1000, S=0.5, bounds=bounds)
+    if(x_min_penalty is not None):
+        print(x_min_penalty, ', ', objective_function(x_min_penalty))
+    else:
+        print("Dupa no")
     x_min_build_in = minimize(fun=objective_function, x0=np.array(randSet[i]), method='Nelder-Mead')
-    print(x_min_build_in.x, ', ', x_min_build_in.fun)
+    print(x_min_build_in.x, ', ', x_min_build_in.fun, '\n')
