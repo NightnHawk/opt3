@@ -16,7 +16,7 @@ def g2(x2):
 
 
 def g3(x1, x2, a):
-    return np.sqrt(x1 ** 2 + x2 ** 2) - a   #g3(x1,x2) <=0
+    return np.sqrt(x1 ** 2 + x2 ** 2) - a  # g3(x1,x2) <=0
 
 
 bounds = [(1., - np.sqrt(15)), (4., np.sqrt(15))]
@@ -27,6 +27,6 @@ for i in range(10):
 for i in range(10):
     x_min = nelder_mead(objective_function, x0=randSet[i], s0=0.5, alpha=1., beta=0.5, gamma=2., delta=0.5, epsilon=0.5,
                         nMax=1000, bounds=bounds)
-    print(x_min, ', ', objective_function(x_min))
-    x_min_build_in = minimize(fun=objective_function, x0=randSet[i], method='Nelder-Mead')
-    print(x_min_build_in.x)
+    print(x_min, ', ', objective_function(x_min)[0])
+    x_min_build_in = minimize(fun=objective_function, x0=np.array(randSet[i]), method='Nelder-Mead')
+    print(x_min_build_in.x, ', ', x_min_build_in.fun)
