@@ -37,10 +37,9 @@ def nelder_mead(func, x0, s0, alpha, beta, gamma, delta, epsilon, nMax: int, bou
     gamma = float(gamma)
     delta = float(gamma)
     epsilon = float(epsilon)
-
     x0 = np.atleast_1d(x0).flatten()  # make sure that x0 is a flat array of at least one dimension
-    x0 = np.asfarray(x0, dtype=np.double)  # make sure that all x0 values are stored as float64 type values
-    simplex = np.empty((N + 1, N), dtype=np.double)  # prepare an array for simplex vertices to be stored
+    x0 = np.asfarray(x0, dtype=np.float64)  # make sure that all x0 values are stored as float64 type values
+    simplex = np.empty((N + 1, N), dtype=np.float64)  # prepare an array for simplex vertices to be stored
     if bounds is not None:
         lower_bound, upper_bound = bounds
         x0 = np.clip(x0, lower_bound, upper_bound)
@@ -62,7 +61,7 @@ def nelder_mead(func, x0, s0, alpha, beta, gamma, delta, epsilon, nMax: int, bou
 
     simplex_centroid = np.sum(np.delete(simplex, index_max)) / N  # calculate the centroid of the simplex
     simplex_reflection = simplex_centroid + alpha * (
-                simplex_centroid - simplex_max)  # calculate the reflected vertex of the maximal simplex vertex
+            simplex_centroid - simplex_max)  # calculate the reflected vertex of the maximal simplex vertex
     if f.f(simplex_reflection) < f.f(simplex_min):
         simplex_expansion = simplex_centroid + gamma * (simplex_reflection - simplex_centroid)
         if bounds is not None:
@@ -131,73 +130,77 @@ def nelder_mead(func, x0, s0, alpha, beta, gamma, delta, epsilon, nMax: int, bou
     return simplex_min, f.get_count()
 
 
-def penalty_function_2(func, x0, s0, c1, alpha, beta, gamma, delta, epsilon, nMax: int, bounds=None):
+def g1(x):
+    if len(x) != 1:
+        x = np.float64(x[0])
+    return -x + 1
+
+
+def g2(x):
+    if len(x) != 1:
+        x = np.float64(x[1])
+    return -x + 1
+
+
+a_array = [4., 4.4934, 5.]
+
+
+def g3(x):
+    return np.sqrt(x[0] ** 2 + x[1] ** 2 - a_array[0])
+
+
+penalty_array = [g1, g2, g3]
+
+
+def S(x, bounds):
+    if bounds is not None:
+        lower_bound, upper_bound = bounds
+        if lower_bound[0] < x[0] < upper_bound[0] and lower_bound[1] < x[1] < upper_bound[1]:
+            penalty = []
+            temp = np.array([penalty_array[i](x) for i in range(3)])
+            penalty.extend([(-1. / temp[i]) for i in range(3)])
+            return sum(penalty)
+        else:
+            penalty = []
+            temp = np.array([penalty_array[i](x) for i in range(3)])
+            penalty.extend([max(0, temp[i]) for i in range(3)])
+            for element in penalty:
+                element *= element
+            return sum(penalty)
+    else:
+        return 0.5
+
+
+def penalty_function(func, x0, alpha=1., epsilon=0.5, penalty=S, penalty_c=1., nMax=1000, NM_s0=0.5, NM_alpha=1.,
+                     NM_beta=0.5,
+                     NM_gamma=2., NM_delta=0.5, NM_epsilon=0.5, NM_nMax=1000, bounds=None):
     x0 = np.atleast_1d(x0).flatten()
     x0 = np.asfarray(x0, dtype=np.double)
-    s0 = np.double(s0)
-    alpha = np.double(alpha)
-    beta = np.double(beta)
-    gamma = np.double(gamma)
-    delta = np.double(delta)
-    epsilon = np.double(epsilon)
 
-    i = 1
-    def F(x):
-        func(x) + c1 * s0
-    xi = nelder_mead(func=F, x0=x0, s0=s0, alpha=alpha, beta=beta, gamma=gamma, delta=delta, epsilon=epsilon, nMax=nMax, bounds=bounds)[0]
-    c1 = alpha * c1
+    NM_s0 = np.float64(NM_s0)
+    NM_alpha = np.float64(NM_alpha)
+    NM_beta = np.float64(NM_beta)
+    NM_gamma = np.float64(NM_gamma)
+    NM_delta = np.float64(NM_delta)
+    NM_epsilon = np.float64(NM_epsilon)
 
-    while abs(xi - x0) < epsilon:
-        x0 = xi
-        xi = nelder_mead(func=F, x0=x0, s0=s0, alpha=alpha, beta=beta, gamma=gamma, delta=delta, epsilon=epsilon, nMax=nMax, bounds=bounds)[0]
-        c1 = alpha * c1
-    return xi
-# def penalty_function(f, x0, c1, alpha, epsilon, Nmax: int, S: float):
-#     i = 0
-#     x = np.array([x0])
-#     c = c1
-#     while True:
-#         def F(x):
-#             f(x) + c * S
-#         x = np.append(x, nelder_mead(F, x[i], S, alpha, 0.5, 2, 0.5, epsilon, Nmax)[0])
-#         c = alpha * c
-#         i += 1
-#         if (i < 2):
-#             if abs(x[i]) < epsilon: break
-#         else:
-#             if abs(x[i] - x[i - 1]) < epsilon: break
-#     return x[i]
-
-def penalty_function(f, S, x0, c0, alpha, epsilon, Nmax, bounds = None):
     x_prev = x0
-    c = c0
+    c = penalty_c
+
     i = 0
 
     while True:
         i += 1
-
-        # Wyznacz F(i)(x) = f(x) + c(i)S(x)
-        F = lambda x: f(x) + c * S
-
-        # Wyznacz x(i) dla F(i) startując z x(i-1)
-        # Zakładamy, że mamy dostęp do jakiegoś algorytmu optymalizacji
-        # który zwraca minimum funkcji F startując z punktu x_prev
-        #x = optimize(F, x_prev)
-        x = nelder_mead(F,x_prev,0.5 ,alpha,0.5,2,0.5,epsilon,Nmax, bounds=bounds)[0]
-
-        # Aktualizuj c(i+1) = α·c(i)
+        if callable(penalty):
+            F = lambda x: func(x) + c * penalty(x, bounds)
+        else:
+            F = lambda x: func(x) + c * penalty
+        x = nelder_mead(func=F, x0=x_prev, s0=NM_s0, alpha=NM_alpha, beta=NM_beta, gamma=NM_gamma, delta=NM_delta,
+                        epsilon=NM_epsilon, nMax=NM_nMax, bounds=bounds)[0]
         c *= alpha
-
-        # Sprawdź warunek zakończenia
-        if np.linalg.norm(x[0] - x_prev[0]) < epsilon:
+        if np.linalg.norm(x - x_prev) < epsilon:
             return x
-
-        # Aktualizuj x_prev
         x_prev = x
-
-        # Sprawdź, czy przekroczono maksymalną liczbę wywołań funkcji celu
-        if i > Nmax:
-            # raise Exception("Przekroczono maksymalną liczbę wywołań funkcji celu")
-            return None
-
+        if i > nMax:
+            break
     return x

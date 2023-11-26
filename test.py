@@ -4,21 +4,6 @@ from scipy.optimize import minimize
 
 from methods import *
 
-a_array = [4., 4.4934, 5.]
-
-
-def g1(x1):
-    return -x1 + 1  # x1 >= 1
-
-
-def g2(x2):
-    return -x2 + 1  # x2 >= 1
-
-
-def g3(x1, x2, a):
-    return np.sqrt(x1 ** 2 + x2 ** 2) - a  # g3(x1,x2) <=0
-
-
 bounds = [(1., - np.sqrt(15)), (4., np.sqrt(15))]
 randSet = []
 for i in range(10):
@@ -27,11 +12,12 @@ for i in range(10):
 for i in range(10):
     x_min = nelder_mead(objective_function, x0=randSet[i], s0=0.5, alpha=1., beta=0.5, gamma=2., delta=0.5, epsilon=0.5,
                         nMax=1000, bounds=bounds)
-    print(x_min, ', ', objective_function(x_min)[0])
-    x_min_penalty = penalty_function(f=objective_function, x0=randSet[i], c0=1., alpha=1., epsilon=0.5, Nmax=1000, S=0.5, bounds=bounds)
-    if(x_min_penalty is not None):
-        print(x_min_penalty, ', ', objective_function(x_min_penalty))
-    else:
-        print("Dupa no")
+    print(x_min, ', ', objective_function(x_min)[0], '\n')
+
+    x_min_penalty = penalty_function(func=objective_function, x0=randSet[i], penalty=S, penalty_c=1., alpha=1.,
+                                     epsilon=0.5, nMax=1000, NM_s0=0.5, NM_alpha=1., NM_beta=0.5, NM_gamma=2.,
+                                     NM_delta=0.5, NM_epsilon=0.5, NM_nMax=1000, bounds=bounds)
+    print(x_min_penalty, ', ', objective_function(x_min_penalty), '\n')
+
     x_min_build_in = minimize(fun=objective_function, x0=np.array(randSet[i]), method='Nelder-Mead')
-    print(x_min_build_in.x, ', ', x_min_build_in.fun, '\n')
+    print(x_min_build_in.x, ', ', x_min_build_in.fun, '\n\n')
